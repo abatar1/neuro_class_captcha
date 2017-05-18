@@ -1,8 +1,8 @@
+import fileinput
+
 class PhpHelper:
     @staticmethod
     def set_alpabet(self, alphabet):
-        import fileinput
-
         for line in fileinput.input('kcaptcha/kcaptcha_config', inplace=True):
             match = '$allowed_symbols'
             if match in line:
@@ -11,8 +11,6 @@ class PhpHelper:
 
     @staticmethod
     def set_length(self, length):
-        import fileinput
-
         for line in fileinput.input('kcaptcha/kcaptcha_config', inplace=True):
             match = '$length'
             if match in line:
