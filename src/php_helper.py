@@ -1,20 +1,21 @@
 import fileinput
 
 class PhpHelper:
-    @staticmethod
+    __config_path = 'kcaptcha/kcaptcha_config.php'
+
     def set_alpabet(self, alphabet):
-        for line in fileinput.input('kcaptcha/kcaptcha_config', inplace=True):
+        for line in fileinput.input(self.__config_path, inplace=True):
             match = '$allowed_symbols'
             if match in line:
-                print "%s" % match + ' = "' + alphabet + '";',
-                break
+                line = "%s = \"%s\";\n" % (match, alphabet)
+            print line,
 
-    @staticmethod
     def set_length(self, length):
-        for line in fileinput.input('kcaptcha/kcaptcha_config', inplace=True):
+        for line in fileinput.input(self.__config_path, inplace=True):
             match = '$length'
             if match in line:
                 if isinstance(length, int):
-                    print "%s" % match + ' = ' + length + ';',
+                    line = "%s = %d;\n" % (match, length)
                 if isinstance(length, tuple):
-                    print "%s" % match + ' = mt_rand' + length + ';',
+                    line = "%s = mt_rand%s;\n" % (match, str(length))
+            print line,

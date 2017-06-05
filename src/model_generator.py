@@ -1,5 +1,11 @@
+import keras
+from keras.models import Sequential
+from keras.layers import Dense, Dropout, Flatten, Conv2D, MaxPooling2D, Activation
+from keras.layers.normalization import BatchNormalization
+from sklearn.preprocessing import LabelEncoder
+
 class ModelGenerator:
-    def generate_text_rec(self, alphabet_size, captcha_size, sample_size, key_method, model_name):
+    def generate_text_rec(self, captcha_size, alphabet_size, sample_size, key_mode, model_name):
         import numpy as np
         keys_array = np.array([None] * sample_size)
 
@@ -17,7 +23,14 @@ class ModelGenerator:
                 sample_array = np.empty((sample_size,) + img.shape)
                 is_array_generated = True
             sample_array[i] = img
-            keys_array[i] = key_method
+
+            key_filename = './key'
+            file_mode = 'r'
+
+            if key_mode == 'str':
+                keys_array[i] = open(key_filename, file_mode).read()
+            elif key_mode == 'len':
+                keys_array[i] = len(open(key_filename, file_mode).read())
 
         training_size = int(sample_size * 0.8)
         training_array = sample_array[:training_size]
@@ -27,25 +40,31 @@ class ModelGenerator:
         test_array = test_array.reshape(test_array.shape[0], img_rows, img_cols, 1)
         input_shape = (img_rows, img_cols, 1)
 
-        import keras
-        from keras.models import Sequential
-        from keras.layers import Dense, Dropout, Flatten
-        from keras.layers import Conv2D, MaxPooling2D
+        encoder = LabelEncoder()
+        encoder.fit(keys_array)
+        encoded_keys_array = encoder.transform(keys_array)
 
-        keys_categorial_array = keras.utils.to_categorical(keys_array, num_classes=alphabet_size)
+        keys_categorial_array = keras.utils.to_categorical(encoded_keys_array, num_classes=alphabet_size)
         keys_training_array = keys_categorial_array[:training_size]
         keys_test_array = keys_categorial_array[training_size:]
 
         model = Sequential()
-        model.add(Conv2D(32, kernel_size=(3, 3),
-                         activation='relu',
-                         input_shape=input_shape))
-        model.add(Conv2D(64, (3, 3), activation='relu'))
+        model.add(Conv2D(32, kernel_size=(3, 3), input_shape=input_shape))
+        model.add(BatchNormalization())
+        model.add(Activation('relu'))
+
+        model.add(Conv2D(64, kernel_size=(3, 3)))
+        model.add(BatchNormalization())
+        model.add(Activation('relu'))
         model.add(MaxPooling2D(pool_size=(2, 2)))
         model.add(Dropout(0.25))
+
         model.add(Flatten())
-        model.add(Dense(64, activation='relu'))
+        model.add(Dense(64))
+        model.add(BatchNormalization())
+        model.add(Activation('relu'))
         model.add(Dropout(0.5))
+
         model.add(Dense(alphabet_size * captcha_size, activation='softmax'))
 
         model.compile(loss=keras.losses.categorical_crossentropy,
@@ -53,7 +72,7 @@ class ModelGenerator:
                       metrics=['accuracy'])
 
         model.fit(training_array, keys_training_array,
-                  batch_size=128,
+                  batch_size=64,
                   epochs=12,
                   verbose=1,
                   validation_data=(test_array, keys_test_array))
