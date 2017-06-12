@@ -1,6 +1,10 @@
 import fileinput
 
+
 class PhpHelper:
+    def __init__(self):
+        pass
+
     __config_path = 'kcaptcha/kcaptcha_config.php'
 
     def set_alpabet(self, alphabet):

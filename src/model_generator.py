@@ -5,8 +5,13 @@ from keras.layers.normalization import BatchNormalization
 
 import numpy as np
 
+
 class ModelGenerator:
-    def generate_text(self, generator_path, sample_size, key_mode):
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def generate_text(generator_path, sample_size, key_mode):
         keys_array = np.array([None] * sample_size)
 
         import subprocess
@@ -15,12 +20,9 @@ class ModelGenerator:
         sample_array = None
         is_array_generated = False
         img_shape = 0
-        for i in range(sample_size):
-            try:
-                s = subprocess.check_output(['php', generator_path])
-            except subprocess.CalledProcessError:
-                print 'Called process error!'
 
+        for i in range(sample_size):
+            s = subprocess.check_output(['php', generator_path])
             img = cv2.imdecode(np.frombuffer(s, dtype=np.uint8), cv2.IMREAD_GRAYSCALE)
 
             if not is_array_generated:
@@ -36,9 +38,11 @@ class ModelGenerator:
                 keys_array[i] = open(key_filename, file_mode).read()
             elif key_mode == 'len':
                 keys_array[i] = len(open(key_filename, file_mode).read())
-        return (sample_array, keys_array, img_shape)
 
-    def categorize_keys(self, keys_array, alphabet, num_classes):
+        return sample_array, keys_array, img_shape
+
+    @staticmethod
+    def categorize_keys(keys_array, alphabet):
         from sklearn.preprocessing import LabelBinarizer
 
         alphabet_list = list(alphabet)
@@ -55,7 +59,8 @@ class ModelGenerator:
 
         return np.concatenate(binarized_keys_array)
 
-    def build_model(self, input_shape, classes_num):
+    @staticmethod
+    def build_model(input_shape, num_classes):
         model = Sequential()
         model.add(Conv2D(32, kernel_size=(3, 3), input_shape=input_shape))
         model.add(BatchNormalization())
@@ -73,14 +78,14 @@ class ModelGenerator:
         model.add(Activation('relu'))
         model.add(Dropout(0.5))
 
-        model.add(Dense(classes_num, activation='softmax'))
+        model.add(Dense(num_classes, activation='softmax'))
 
         return model
 
     def generate(self, generator_path, sample_size, key_mode, alphabet):
         (sample_array, keys_array, img_shape) = self.generate_text(generator_path=generator_path,
-                           sample_size=sample_size,
-                           key_mode=key_mode)
+                                                                   sample_size=sample_size,
+                                                                   key_mode=key_mode)
 
         captcha_size = len(keys_array[0])
 
@@ -90,9 +95,9 @@ class ModelGenerator:
 
         (img_rows, img_cols) = img_shape
 
-        from keras import backend as K
+        from keras import backend as k
 
-        if K.image_data_format() == 'channels_first':
+        if k.image_data_format() == 'channels_first':
             training_array = training_array.reshape(training_array.shape[0], 1, img_rows, img_cols)
             test_array = test_array.reshape(test_array.shape[0], 1, img_rows, img_cols)
             input_shape = (1, img_rows, img_cols)
@@ -101,13 +106,13 @@ class ModelGenerator:
             test_array = test_array.reshape(test_array.shape[0], img_rows, img_cols, 1)
             input_shape = (img_rows, img_cols, 1)
 
-        num_classes = len(alphabet) * captcha_size
-        keys_categorial = self.categorize_keys(keys_array=keys_array, alphabet=alphabet, num_classes=num_classes)
+        keys_categorial = self.categorize_keys(keys_array=keys_array, alphabet=alphabet)
 
         keys_training = keys_categorial[:training_size]
         keys_test = keys_categorial[training_size:]
 
-        model = self.build_model(input_shape=input_shape, )
+        num_classes = len(alphabet) * captcha_size
+        model = self.build_model(input_shape=input_shape, num_classes=num_classes)
 
         model.compile(loss=keras.losses.categorical_crossentropy,
                       optimizer=keras.optimizers.Adadelta(),
@@ -120,4 +125,4 @@ class ModelGenerator:
                   validation_data=(test_array, keys_test))
 
         model_result = model.evaluate(test_array, keys_test, verbose=0)
-        return (model, model_result)
+        return model, model_result
