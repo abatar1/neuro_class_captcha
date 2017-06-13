@@ -3,13 +3,13 @@
 $alphabet = "0123456789abcdefghijklmnopqrstuvwxyz"; # do not change without changing font files!
 
 # symbols used to draw CAPTCHA
-$allowed_symbols = "23456789abcdegkmnpqsuvxy";
+$allowed_symbols = "23456789abcdegkmnpqsuvxyz";
 
 # folder with fonts
 $fontsdir = 'fonts';	
 
 # CAPTCHA string length
-$length = 1;
+$length = 3;
 
 # CAPTCHA image size (you do not need to change it, this parameters is optimal)
 $width = 160;

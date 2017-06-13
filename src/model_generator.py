@@ -44,7 +44,9 @@ class ModelGenerator:
         encoder.fit(keys_array)
         encoded_keys_array = encoder.transform(keys_array)
 
-        keys_categorial_array = keras.utils.to_categorical(encoded_keys_array, num_classes=alphabet_size)
+        print encoded_keys_array.max()
+
+        keys_categorial_array = keras.utils.to_categorical(encoded_keys_array, num_classes=alphabet_size * captcha_size)
         keys_training_array = keys_categorial_array[:training_size]
         keys_test_array = keys_categorial_array[training_size:]
 
