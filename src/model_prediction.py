@@ -1,8 +1,13 @@
 import cv2
 import numpy as np
 
+
 class ModelPrediction:
-    def predict(self, filename):
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def predict(filename):
         img = np.array(cv2.imread(filename, cv2.IMREAD_GRAYSCALE))
 
         if img is None:

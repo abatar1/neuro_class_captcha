@@ -2,11 +2,16 @@ import keras
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Flatten, Conv2D, MaxPooling2D, Activation
 from keras.layers.normalization import BatchNormalization
-from sklearn.preprocessing import LabelEncoder
+
+import numpy as np
+
 
 class ModelGenerator:
-    def generate_text_rec(self, captcha_size, alphabet_size, sample_size, key_mode, model_name):
-        import numpy as np
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def generate_text(generator_path, sample_size, key_mode):
         keys_array = np.array([None] * sample_size)
 
         import subprocess
@@ -14,12 +19,14 @@ class ModelGenerator:
 
         sample_array = None
         is_array_generated = False
-        (img_rows, img_cols) = (0, 0)
+        img_shape = 0
+
         for i in range(sample_size):
-            s = subprocess.check_output(['php', 'kcaptcha/index.php'])
+            s = subprocess.check_output(['php', generator_path])
             img = cv2.imdecode(np.frombuffer(s, dtype=np.uint8), cv2.IMREAD_GRAYSCALE)
+
             if not is_array_generated:
-                (img_rows, img_cols) = img.shape
+                img_shape = img.shape
                 sample_array = np.empty((sample_size,) + img.shape)
                 is_array_generated = True
             sample_array[i] = img
@@ -32,24 +39,26 @@ class ModelGenerator:
             elif key_mode == 'len':
                 keys_array[i] = len(open(key_filename, file_mode).read())
 
-        training_size = int(sample_size * 0.8)
-        training_array = sample_array[:training_size]
-        test_array = sample_array[training_size:]
+        return sample_array, keys_array, img_shape
 
-        training_array = training_array.reshape(training_array.shape[0], img_rows, img_cols, 1)
-        test_array = test_array.reshape(test_array.shape[0], img_rows, img_cols, 1)
-        input_shape = (img_rows, img_cols, 1)
+    @staticmethod
+    def categorize_keys(keys_array, alphabet):
+        from sklearn.preprocessing import LabelBinarizer
 
-        encoder = LabelEncoder()
-        encoder.fit(keys_array)
-        encoded_keys_array = encoder.transform(keys_array)
+        binarizer = LabelBinarizer()
+        binarizer.fit(list(alphabet))
 
-        print encoded_keys_array.max()
+        binarized_keys_array = np.empty([len(keys_array), len(alphabet) * len(keys_array[0])])
+        i = 0
+        for c in keys_array:
+            ct = binarizer.transform(list(c))
+            binarized_keys_array[i] = np.concatenate(ct)
+            i += 1
 
-        keys_categorial_array = keras.utils.to_categorical(encoded_keys_array, num_classes=alphabet_size * captcha_size)
-        keys_training_array = keys_categorial_array[:training_size]
-        keys_test_array = keys_categorial_array[training_size:]
+        return binarized_keys_array
 
+    @staticmethod
+    def build_model(input_shape, num_classes):
         model = Sequential()
         model.add(Conv2D(32, kernel_size=(3, 3), input_shape=input_shape))
         model.add(BatchNormalization())
@@ -67,18 +76,51 @@ class ModelGenerator:
         model.add(Activation('relu'))
         model.add(Dropout(0.5))
 
-        model.add(Dense(alphabet_size * captcha_size, activation='softmax'))
+        model.add(Dense(num_classes, activation='softmax'))
+
+        return model
+
+    def generate(self, generator_path, sample_size, key_mode, alphabet):
+        (sample_array, keys_array, img_shape) = self.generate_text(generator_path=generator_path,
+                                                                   sample_size=sample_size,
+                                                                   key_mode=key_mode)
+
+        captcha_size = len(keys_array[0])
+
+        training_size = int(sample_size * 0.8)
+        training_array = sample_array[:training_size]
+        test_array = sample_array[training_size:]
+
+        (img_rows, img_cols) = img_shape
+
+        from keras import backend as k
+
+        if k.image_data_format() == 'channels_first':
+            training_array = training_array.reshape(training_array.shape[0], 1, img_rows, img_cols)
+            test_array = test_array.reshape(test_array.shape[0], 1, img_rows, img_cols)
+            input_shape = (1, img_rows, img_cols)
+        else:
+            training_array = training_array.reshape(training_array.shape[0], img_rows, img_cols, 1)
+            test_array = test_array.reshape(test_array.shape[0], img_rows, img_cols, 1)
+            input_shape = (img_rows, img_cols, 1)
+
+        keys_categorial = self.categorize_keys(keys_array=keys_array, alphabet=alphabet)
+
+        keys_training = keys_categorial[:training_size]
+        keys_test = keys_categorial[training_size:]
+
+        num_classes = len(alphabet) * captcha_size
+        model = self.build_model(input_shape=input_shape, num_classes=num_classes)
 
         model.compile(loss=keras.losses.categorical_crossentropy,
                       optimizer=keras.optimizers.Adadelta(),
                       metrics=['accuracy'])
 
-        model.fit(training_array, keys_training_array,
+        model.fit(training_array, keys_training,
                   batch_size=64,
                   epochs=12,
                   verbose=1,
-                  validation_data=(test_array, keys_test_array))
-        print model.evaluate(test_array, keys_test_array, verbose=0)
+                  validation_data=(test_array, keys_test))
 
-        model.save('models/' + model_name + '.h5')
-        model.save_weights('weights/' + model_name + '_weights.h5')
+        model_result = model.evaluate(test_array, keys_test, verbose=0)
+        return model, model_result

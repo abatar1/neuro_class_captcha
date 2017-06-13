@@ -2,16 +2,33 @@ import model_generator as mg
 import php_helper as ph
 
 alphabet = "23456789abcdegkmnpqsuvxyz"
-alphabet_size = len(alphabet)
+sample_size = 1000
+min_size, max_size = 1, 10
 
 generator = mg.ModelGenerator()
 helper = ph.PhpHelper()
 helper.set_alpabet(alphabet)
-min_size, max_size = 3, 10
+
+
+def save_model(model, model_result, model_name):
+    model.save('models/' + model_name + '.h5')
+    model.save_weights('weights/' + model_name + '_weights.h5')
+
+    with open("model_result.txt", "a") as res_file:
+        res_file.write(model_name + ': ' + str(model_result) + '\n')
+
 
 for i in range(min_size, max_size + 1):
     helper.set_length(i)
-    generator.generate_text_rec(i, alphabet_size, 500 * alphabet_size, 'str', str(i))
+    (model, model_result) = generator.generate(generator_path='kcaptcha/index.php',
+                                               alphabet=alphabet,
+                                               key_mode='str',
+                                               sample_size=sample_size)
+    save_model(model, model_result, model_name=str(i))
 
 helper.set_length((min_size, max_size))
-generator.generate_text_rec(i, alphabet_size, 500 * (max_size - min_size + 1), 'len', 'num')
+(model, model_result) = generator.generate(generator_path='kcaptcha/index.php',
+                                           alphabet=alphabet,
+                                           key_mode='str',
+                                           sample_size=sample_size)
+save_model(model, model_result, model_name='num')
