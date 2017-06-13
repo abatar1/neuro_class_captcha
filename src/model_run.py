@@ -1,13 +1,15 @@
 import model_generator as mg
 import php_helper as ph
 
-alphabet = "23456789abcdegkmnpqsuvxyz"
+
 sample_size = 1000
-min_size, max_size = 1, 10
+n_alphabet = [n for n in range(1, sample_size + 1)]
+c_alphabet = list("23456789abcdegkmnpqsuvxyz")
+min_size, max_size = 1, 8
 
 generator = mg.ModelGenerator()
 helper = ph.PhpHelper()
-helper.set_alpabet(alphabet)
+helper.set_alpabet(c_alphabet)
 
 
 def save_model(model, model_result, model_name):
@@ -21,14 +23,14 @@ def save_model(model, model_result, model_name):
 for i in range(min_size, max_size + 1):
     helper.set_length(i)
     (model, model_result) = generator.generate(generator_path='kcaptcha/index.php',
-                                               alphabet=alphabet,
+                                               alphabet=c_alphabet,
                                                key_mode='str',
                                                sample_size=sample_size)
     save_model(model, model_result, model_name=str(i))
 
 helper.set_length((min_size, max_size))
 (model, model_result) = generator.generate(generator_path='kcaptcha/index.php',
-                                           alphabet=alphabet,
-                                           key_mode='str',
+                                           alphabet=n_alphabet,
+                                           key_mode='len',
                                            sample_size=sample_size)
 save_model(model, model_result, model_name='num')

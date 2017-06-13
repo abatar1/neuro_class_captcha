@@ -8,5 +8,6 @@ session_start();
 
 $captcha = new KCAPTCHA();
 
-file_put_contents("key", $captcha->getKeyString());
+file_put_contents('key', $captcha->getKeyString());
+
 ?>

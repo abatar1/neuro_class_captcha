@@ -42,16 +42,16 @@ class ModelGenerator:
         return sample_array, keys_array, img_shape
 
     @staticmethod
-    def categorize_keys(keys_array, alphabet):
+    def categorize_keys(keys_array, alphabet, key_len):
         from sklearn.preprocessing import LabelBinarizer
 
         binarizer = LabelBinarizer()
         binarizer.fit(list(alphabet))
-
-        binarized_keys_array = np.empty([len(keys_array), len(alphabet) * len(keys_array[0])])
+        
+        binarized_keys_array = np.empty([len(keys_array), len(alphabet) * key_len])
         i = 0
         for c in keys_array:
-            ct = binarizer.transform(list(c))
+            ct = binarizer.transform(list(c) if key_len > 1 else [c])
             binarized_keys_array[i] = np.concatenate(ct)
             i += 1
 
@@ -79,14 +79,11 @@ class ModelGenerator:
         model.add(Dense(num_classes, activation='softmax'))
 
         return model
-
+    
     def generate(self, generator_path, sample_size, key_mode, alphabet):
         (sample_array, keys_array, img_shape) = self.generate_text(generator_path=generator_path,
                                                                    sample_size=sample_size,
                                                                    key_mode=key_mode)
-
-        captcha_size = len(keys_array[0])
-
         training_size = int(sample_size * 0.8)
         training_array = sample_array[:training_size]
         test_array = sample_array[training_size:]
@@ -104,12 +101,18 @@ class ModelGenerator:
             test_array = test_array.reshape(test_array.shape[0], img_rows, img_cols, 1)
             input_shape = (img_rows, img_cols, 1)
 
-        keys_categorial = self.categorize_keys(keys_array=keys_array, alphabet=alphabet)
+        if key_mode == 'len':
+            classified_symbols_num = 1
+        elif key_mode == 'str':
+            classified_symbols_num = len(keys_array[0])
+        else:
+            return None
 
+        keys_categorial = self.categorize_keys(keys_array=keys_array, alphabet=alphabet, key_len=classified_symbols_num)
         keys_training = keys_categorial[:training_size]
         keys_test = keys_categorial[training_size:]
 
-        num_classes = len(alphabet) * captcha_size
+        num_classes = len(alphabet) * classified_symbols_num
         model = self.build_model(input_shape=input_shape, num_classes=num_classes)
 
         model.compile(loss=keras.losses.categorical_crossentropy,

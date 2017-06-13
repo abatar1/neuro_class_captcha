@@ -40,7 +40,7 @@ class KCAPTCHA{
 		do{
 			// generating random keystring
 			while(true){
-				$this->keystring='';
+				$this->keystring="";
 				for($i=0;$i<$length;$i++){
 					$this->keystring.=$allowed_symbols{mt_rand(0,strlen($allowed_symbols)-1)};
 				}
