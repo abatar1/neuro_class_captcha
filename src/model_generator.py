@@ -61,29 +61,33 @@ class ModelGenerator:
     def build_model(input_shape, num_classes):
         model = Sequential()
 
-        model.add(Conv2D(32, kernel_size=(3, 3), input_shape=input_shape))
+        model.add(Conv2D(32, kernel_size=(3, 3), padding='same', input_shape=input_shape))
         model.add(BatchNormalization())
         model.add(Activation('relu'))
-        model.add(MaxPooling2D(pool_size=(2, 2)))
-
         model.add(Conv2D(64, kernel_size=(3, 3)))
         model.add(BatchNormalization())
         model.add(Activation('relu'))
         model.add(MaxPooling2D(pool_size=(2, 2)))
+        model.add(Dropout(0.25))
 
-        model.add(Conv2D(64, (3, 3)))
+        model.add(Conv2D(64, padding='same', kernel_size=(3, 3)))
+        model.add(BatchNormalization())
+        model.add(Activation('relu'))
+        model.add(Conv2D(64, kernel_size=(3, 3)))
+        model.add(BatchNormalization())
         model.add(Activation('relu'))
         model.add(MaxPooling2D(pool_size=(2, 2)))
+        model.add(Dropout(0.25))
 
         model.add(Flatten())
-        model.add(Dense(64))
+        model.add(Dense(512))
         model.add(Activation('relu'))
         model.add(Dropout(0.5))
-        model.add(Dense(1))
-        model.add(Activation('sigmoid'))
+        model.add(Dense(num_classes))
+        model.add(Activation('softmax'))
 
-        model.compile(loss='binary_crossentropy',
-                      optimizer='rmsprop',
+        model.compile(loss='categorical_crossentropy',
+                      optimizer=keras.optimizers.Adadelta(),
                       metrics=['accuracy'])
 
         return model
