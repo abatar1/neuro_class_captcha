@@ -14,6 +14,10 @@ generator_path='kcaptcha/index.php'
 s = subprocess.check_output(['php', generator_path])
 img = cv2.imdecode(np.frombuffer(s, dtype=np.uint8), cv2.IMREAD_UNCHANGED)
 plt.imshow(img)
+plt.show()
 
 predict = mp.ModelPrediction()
-print predict.predict(img)
+size, prediction = predict.predict(img)
+
+print 'size: ' + ''.join(str(e) for e in size)
+print 'prediction: ' + ''.join(str(e) for e in prediction)

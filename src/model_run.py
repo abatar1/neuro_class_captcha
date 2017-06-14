@@ -17,7 +17,7 @@ def save_model(model, model_result, model_name):
     model.save_weights('weights/' + model_name + '_weights.h5')
 
     with open("model_result.txt", "a") as res_file:
-        res_file.write(model_name + ': ' + str(model_result) + '\n')
+        res_file.write(model_name + ': ' + str(model_result[1]) + '\n')
 
 
 for i in range(min_size, max_size + 1):
@@ -33,4 +33,4 @@ helper.set_length((min_size, max_size))
                                            alphabet=n_alphabet,
                                            key_mode='len',
                                            sample_size=sample_size)
-save_model(model, model_result, model_name='num')
+save_model(model, model_result, model_name='recognize_size')

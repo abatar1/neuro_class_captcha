@@ -28,5 +28,4 @@ class ModelPrediction:
         t_model.load_weights(weight_dir_name + str(size[0]) + '_weights.h5')
         label_prediction = t_model.predict(gray_img)
 
-        print label_prediction
-        print np.argmax(label_prediction, axis=-1)
+        return size, np.argmax(label_prediction, axis=-1)
