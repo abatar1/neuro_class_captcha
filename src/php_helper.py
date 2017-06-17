@@ -12,7 +12,7 @@ class PhpHelper:
             match = '$allowed_symbols'
             if match in line and not '//' in line:
                 line = "%s = \"%s\";\n" % (match, ''.join(alphabet))
-            print line,
+            print(line, end="")
 
     def set_length(self, length):
         for line in fileinput.input(self.__config_path, inplace=True):
@@ -22,4 +22,4 @@ class PhpHelper:
                     line = "%s = %d;\n" % (match, length)
                 if isinstance(length, tuple):
                     line = "%s = mt_rand%s;\n" % (match, str(length))
-            print line,
+            print(line, end="")

@@ -19,5 +19,5 @@ plt.show()
 predict = mp.ModelPrediction()
 size, prediction = predict.predict(img)
 
-print 'size: ' + ''.join(str(e) for e in size)
-print 'prediction: ' + ''.join(str(e) for e in prediction)
+print('size: ' + ''.join(str(e) for e in size))
+print('prediction: ' + ''.join(str(e) for e in prediction))

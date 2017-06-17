@@ -1,9 +1,5 @@
-import keras
-from keras.models import Sequential
-from keras.layers import Dense, Dropout, Flatten, Conv2D, MaxPooling2D, Activation
-from keras.layers.normalization import BatchNormalization
-
 import numpy as np
+from keras import backend as k
 
 
 class ModelGenerator:
@@ -59,36 +55,59 @@ class ModelGenerator:
 
     @staticmethod
     def build_model(input_shape, num_classes):
+        from keras.models import Sequential
+        from keras.layers.core import Dense, Dropout, Flatten, Activation
+        from keras.layers.convolutional import Conv2D
+        from keras.layers.pooling import MaxPooling2D
+        from keras.layers.normalization import BatchNormalization
+
         model = Sequential()
-
-        model.add(Conv2D(32, kernel_size=(3, 3), padding='same', input_shape=input_shape))
+        model.add(Conv2D(16, kernel_size=(3, 3), padding='same', input_shape=input_shape))
         model.add(BatchNormalization())
         model.add(Activation('relu'))
-        model.add(Conv2D(64, kernel_size=(3, 3)))
+        model.add(Dropout(0.2))
+
+        model.add(Conv2D(16, padding='same', kernel_size=(3, 3)))
         model.add(BatchNormalization())
         model.add(Activation('relu'))
         model.add(MaxPooling2D(pool_size=(2, 2)))
-        model.add(Dropout(0.25))
+        model.add(Dropout(0.2))
 
-        model.add(Conv2D(64, padding='same', kernel_size=(3, 3)))
-        model.add(BatchNormalization())
-        model.add(Activation('relu'))
-        model.add(Conv2D(64, kernel_size=(3, 3)))
+        model.add(Conv2D(16, padding='same', kernel_size=(3, 3)))
         model.add(BatchNormalization())
         model.add(Activation('relu'))
         model.add(MaxPooling2D(pool_size=(2, 2)))
-        model.add(Dropout(0.25))
+        model.add(Dropout(0.2))
+
+        model.add(Conv2D(16, padding='same', kernel_size=(3, 3)))
+        model.add(BatchNormalization())
+        model.add(Activation('relu'))
+        model.add(MaxPooling2D(pool_size=(2, 2)))
+        model.add(Dropout(0.2))
+
+        model.add(Conv2D(16, padding='same', kernel_size=(3, 3)))
+        model.add(BatchNormalization())
+        model.add(Activation('relu'))
+        model.add(MaxPooling2D(pool_size=(2, 2)))
+        model.add(Dropout(0.2))
+
+        model.add(Conv2D(16, padding='same', kernel_size=(3, 3)))
+        model.add(BatchNormalization())
+        model.add(Activation('relu'))
+        model.add(MaxPooling2D(pool_size=(2, 2)))
+        model.add(Dropout(0.2))
 
         model.add(Flatten())
-        model.add(Dense(512))
-        model.add(Activation('relu'))
-        model.add(Dropout(0.5))
-        model.add(Dense(num_classes))
-        model.add(Activation('softmax'))
 
-        model.compile(loss='categorical_crossentropy',
-                      optimizer=keras.optimizers.Adadelta(),
-                      metrics=['accuracy'])
+        model.add(Dense(num_classes))
+        model.add(Activation('sigmoid'))
+
+        def multilabel_accuracy(y_true, y_pred):
+            return k.all(k.equal(y_true, k.round(y_pred)), axis=1)
+
+        model.compile(loss='binary_crossentropy',
+                      optimizer='sgd',
+                      metrics=[multilabel_accuracy])
 
         return model
     
@@ -102,16 +121,15 @@ class ModelGenerator:
 
         (img_rows, img_cols) = img_shape
 
-        from keras import backend as k
-
+        channels_num = 1
         if k.image_data_format() == 'channels_first':
-            training_array = training_array.reshape(training_array.shape[0], 1, img_rows, img_cols)
-            test_array = test_array.reshape(test_array.shape[0], 1, img_rows, img_cols)
-            input_shape = (1, img_rows, img_cols)
+            training_array = training_array.reshape(training_array.shape[0], channels_num, img_rows, img_cols)
+            test_array = test_array.reshape(test_array.shape[0], channels_num, img_rows, img_cols)
+            input_shape = (channels_num, img_rows, img_cols)
         else:
-            training_array = training_array.reshape(training_array.shape[0], img_rows, img_cols, 1)
-            test_array = test_array.reshape(test_array.shape[0], img_rows, img_cols, 1)
-            input_shape = (img_rows, img_cols, 1)
+            training_array = training_array.reshape(training_array.shape[0], img_rows, img_cols, channels_num)
+            test_array = test_array.reshape(test_array.shape[0], img_rows, img_cols, channels_num)
+            input_shape = (img_rows, img_cols, channels_num)
 
         if key_mode == 'len':
             classified_symbols_num = 1
@@ -127,10 +145,13 @@ class ModelGenerator:
         num_classes = len(alphabet) * classified_symbols_num
         model = self.build_model(input_shape=input_shape, num_classes=num_classes)
 
+        from keras.utils import plot_model
+        plot_model(model, show_shapes=True, to_file='model.png')
+
         model.fit(training_array, keys_training,
-                  batch_size=64,
-                  epochs=12,
-                  verbose=1,
+                  batch_size=16,
+                  epochs=30,
+                  verbose=2,
                   validation_data=(test_array, keys_test))
 
         model_result = model.evaluate(test_array, keys_test, verbose=0)
